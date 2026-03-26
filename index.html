@@ -567,14 +567,18 @@ nav {
 </div>
 
 <!-- LOCK SCREEN -->
-<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:400;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:32px">
-  <div style="font-family:'DM Serif Display',serif;font-size:42px;color:var(--accent2);margin-bottom:6px">TaskFlow</div>
-  <div style="font-size:14px;color:var(--text3);margin-bottom:48px">Enter your PIN to continue</div>
-  <div style="font-size:36px;margin-bottom:12px">&#128274;</div>
-  <div style="font-size:14px;color:var(--text2);margin-bottom:20px" id="lock-label">PIN</div>
-  <div style="display:flex;gap:14px;margin-bottom:32px" id="pin-dots"></div>
-  <div style="display:grid;grid-template-columns:repeat(3,72px);gap:12px" id="pin-pad"></div>
-  <div style="margin-top:20px;font-size:13px;color:var(--red);min-height:20px" id="lock-error"></div>
+<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:400;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:24px">
+  <div style="font-family:'DM Serif Display',serif;font-size:38px;color:var(--accent2);margin-bottom:4px">TaskFlow</div>
+  <div style="font-size:13px;color:var(--text3);margin-bottom:32px">Enter your PIN to continue</div>
+  <div style="display:flex;gap:12px;margin-bottom:28px" id="pin-dots"></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:280px" id="pin-pad"></div>
+  <button onclick="submitPin()" style="
+    margin-top:14px;width:100%;max-width:280px;padding:16px;
+    border-radius:14px;border:none;background:var(--accent);color:#fff;
+    font-family:inherit;font-size:16px;font-weight:600;cursor:pointer;
+    letter-spacing:0.5px;
+  ">Unlock</button>
+  <div style="margin-top:14px;font-size:13px;color:var(--red);min-height:18px;text-align:center" id="lock-error"></div>
 </div>
 
 <!-- MAIN APP -->
@@ -643,7 +647,7 @@ let timerState = {
 const COLORS = ['#7c6af7','#60a5fa','#f472b6','#34d399','#fb923c','#fbbf24','#f87171','#a78bfa'];
 
 // ── Hardcoded Apps Script URL ──────────────────────────────────
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLZ6sKYvKIYA7xVKWdtokW8haIaoMIRurvZrS7shLOuE-ylJDwzWOLZNpT2ObUQ6Lm/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlf_8AD8SMGL-4S61_yn1lb3GvHkWHdmZppjJNzRjzNtebw2ZeIt2s3PUqlMHVI4sF/exec';
 
 // ── PIN helpers ────────────────────────────────────────────────
 async function hashPin(pin) {
@@ -656,16 +660,17 @@ async function hashPin(pin) {
 let pinBuffer = '';
 
 function showLockScreen() {
-  const ls = document.getElementById('lock-screen');
-  ls.style.display = 'flex';
+  document.getElementById('lock-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
   pinBuffer = '';
   renderPinDots();
   renderPinPad();
+  document.getElementById('lock-error').textContent = '';
 }
 
 function hideLockScreen() {
   document.getElementById('lock-screen').style.display = 'none';
-  // Store unlock timestamp in sessionStorage — valid for this tab session
+  document.getElementById('app').style.display = 'flex';
   sessionStorage.setItem('tf_unlocked', Date.now().toString());
 }
 
@@ -674,9 +679,9 @@ function isUnlocked() {
 }
 
 function renderPinDots() {
-  const MAX = 8;
+  const MAX = 10;
   document.getElementById('pin-dots').innerHTML = Array.from({length: MAX}, (_, i) =>
-    `<div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--border);background:${i < pinBuffer.length ? 'var(--accent2)' : 'transparent'};transition:all 0.15s"></div>`
+    `<div style="width:12px;height:12px;border-radius:50%;border:2px solid var(--border);background:${i < pinBuffer.length ? 'var(--accent2)' : 'transparent'};transition:background 0.1s"></div>`
   ).join('');
 }
 
@@ -686,33 +691,27 @@ function renderPinPad() {
     if (!k) return '<div></div>';
     const isBack = k === '⌫';
     return `<button onclick="pinKey('${k}')" style="
-      height:72px;border-radius:16px;border:1px solid var(--border);
+      height:68px;border-radius:14px;border:1px solid var(--border);
       background:${isBack ? 'var(--surface2)' : 'var(--surface)'};
       color:${isBack ? 'var(--red)' : 'var(--text)'};
-      font-family:inherit;font-size:${isBack ? '22px' : '24px'};
-      font-weight:500;cursor:pointer;transition:all 0.1s;
-      -webkit-tap-highlight-color:transparent;
-    " ontouchstart="this.style.background='var(--surface3)'"
-       ontouchend="this.style.background='${isBack ? 'var(--surface2)' : 'var(--surface)'}'">
-      ${k}
-    </button>`;
+      font-family:inherit;font-size:${isBack ? '20px' : '22px'};
+      font-weight:500;cursor:pointer;transition:background 0.1s;
+      -webkit-tap-highlight-color:transparent;width:100%;
+    ">${k}</button>`;
   }).join('');
 }
 
-async function pinKey(k) {
-  const errEl = document.getElementById('lock-error');
-  errEl.textContent = '';
+function pinKey(k) {
+  document.getElementById('lock-error').textContent = '';
   if (k === '⌫') {
     pinBuffer = pinBuffer.slice(0, -1);
-    renderPinDots();
-    return;
+  } else {
+    if (pinBuffer.length >= 20) return;
+    pinBuffer += k;
   }
-  if (pinBuffer.length >= 20) return;
-  pinBuffer += k;
   renderPinDots();
 }
 
-// Also allow keyboard input on lock screen
 document.addEventListener('keydown', (e) => {
   if (document.getElementById('lock-screen').style.display === 'flex') {
     if (e.key >= '0' && e.key <= '9') pinKey(e.key);
@@ -722,8 +721,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 async function submitPin() {
-  if (!pinBuffer) return;
+  if (!pinBuffer) { 
+    document.getElementById('lock-error').textContent = 'Please enter your PIN.';
+    return; 
+  }
   const errEl = document.getElementById('lock-error');
+  errEl.style.color = 'var(--text2)';
   errEl.textContent = 'Verifying…';
   try {
     const hash = await hashPin(pinBuffer);
@@ -732,39 +735,20 @@ async function submitPin() {
       hideLockScreen();
       loadApp();
     } else {
+      errEl.style.color = 'var(--red)';
       errEl.textContent = 'Incorrect PIN. Try again.';
       pinBuffer = '';
       renderPinDots();
-      // Shake animation
       const dots = document.getElementById('pin-dots');
       dots.style.animation = 'shake 0.4s ease';
       setTimeout(() => dots.style.animation = '', 400);
     }
   } catch(e) {
+    errEl.style.color = 'var(--red)';
     errEl.textContent = 'Could not reach server. Check connection.';
     pinBuffer = '';
     renderPinDots();
   }
-}
-
-// Add Enter button below pin pad after render
-function addEnterBtn() {
-  const pad = document.getElementById('pin-pad');
-  if (!pad) return;
-  const existing = document.getElementById('pin-enter-btn');
-  if (existing) return;
-  const btn = document.createElement('button');
-  btn.id = 'pin-enter-btn';
-  btn.textContent = 'Unlock';
-  btn.onclick = submitPin;
-  btn.style.cssText = `
-    grid-column: 1/-1; margin-top:4px; padding:16px;
-    border-radius:16px; border:none;
-    background:var(--accent); color:#fff;
-    font-family:inherit; font-size:16px; font-weight:600;
-    cursor:pointer; letter-spacing:0.5px;
-  `;
-  pad.after(btn);
 }
 
 // ── Init ───────────────────────────────────────────────────────
@@ -783,7 +767,6 @@ window.onload = () => {
           loadApp();
         } else {
           showLockScreen();
-          setTimeout(addEnterBtn, 50);
         }
         return;
       }
@@ -806,7 +789,6 @@ async function saveSetup() {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
     document.getElementById('setup-screen').style.display = 'none';
     showLockScreen();
-    setTimeout(addEnterBtn, 50);
     showToast('Connected! Enter your PIN to continue.', 'success');
   } catch(e) {
     console.error('Setup error:', e);
@@ -1201,7 +1183,6 @@ function lockApp() {
   sessionStorage.removeItem('tf_unlocked');
   document.getElementById('app').style.display = 'none';
   showLockScreen();
-  setTimeout(addEnterBtn, 50);
 }
 
 function openResetSetup() {
