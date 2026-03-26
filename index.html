@@ -30,7 +30,8 @@
   --tag-individual: #7c6af7;
   --tag-professional: #60a5fa;
   --tag-family: #f472b6;
-  --tag-AJCETeaching:#2dd4bf;
+  --tag-ajce-teaching: #2dd4bf;
+  --tag-ajce-other: #f59e0b;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -126,7 +127,8 @@ nav {
 .tag-individual { background: rgba(124,106,247,0.2); color: var(--tag-individual); }
 .tag-professional { background: rgba(96,165,250,0.2); color: var(--tag-professional); }
 .tag-family { background: rgba(244,114,182,0.2); color: var(--tag-family); }
-.tag-AJCETeaching { background: rgba(45,212,191,0.2); color: var(--tag-AJCETeaching); }
+.tag-ajce-teaching { background: rgba(45,212,191,0.2); color: var(--tag-ajce-teaching); }
+.tag-ajce-other { background: rgba(245,158,11,0.2); color: var(--tag-ajce-other); }
 
 /* ── Priority ── */
 .priority-dot {
@@ -597,8 +599,12 @@ nav {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       <span>Projects</span>
     </button>
+    <button class="nav-btn" id="nav-alltasks" onclick="navigate('alltasks')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+      <span>All Tasks</span>
+    </button>
     <button class="nav-btn" id="nav-stats" onclick="navigate('stats')">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
       <span>Stats</span>
     </button>
     <button class="nav-btn" id="nav-settings" onclick="navigate('settings')">
@@ -629,7 +635,8 @@ let state = {
   stats: null,
   settings: {},
   currentProjectId: null,
-  pomodoroLog: {}
+  pomodoroLog: {},
+  allTasks: []
 };
 
 // ── Timer State ────────────────────────────────────────────────
@@ -649,7 +656,7 @@ let timerState = {
 const COLORS = ['#7c6af7','#60a5fa','#f472b6','#34d399','#fb923c','#fbbf24','#f87171','#a78bfa'];
 
 // ── Hardcoded Apps Script URL ──────────────────────────────────
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlf_8AD8SMGL-4S61_yn1lb3GvHkWHdmZppjJNzRjzNtebw2ZeIt2s3PUqlMHVI4sF/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxaHsuYA98fHch527Po1oAtoVTLqT2lKjmHfm1JY2C_1pEdptWwJ3ap3wCQKn1389ug/exec';
 
 // ── PIN helpers ────────────────────────────────────────────────
 async function hashPin(pin) {
@@ -870,17 +877,18 @@ function navigate(page, params = {}) {
   state.page = page;
   if (params.projectId !== undefined) state.currentProjectId = params.projectId;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  const navMap = { home: 'nav-home', projects: 'nav-projects', stats: 'nav-stats', settings: 'nav-settings', tasks: 'nav-projects' };
+  const navMap = { home: 'nav-home', projects: 'nav-projects', alltasks: 'nav-alltasks', stats: 'nav-stats', settings: 'nav-settings', tasks: 'nav-projects' };
   const nb = document.getElementById(navMap[page]);
   if (nb) nb.classList.add('active');
   document.getElementById('content').scrollTop = 0;
   render();
   if (page === 'tasks' && state.currentProjectId) loadTasks(state.currentProjectId).then(render);
+  if (page === 'alltasks') loadAllTasksPage().then(render);
   if (page === 'stats') loadStats().then(render);
 }
 
 function render() {
-  const pages = { home: renderHome, projects: renderProjects, tasks: renderTasks, stats: renderStats, settings: renderSettings };
+  const pages = { home: renderHome, projects: renderProjects, alltasks: renderAllTasks, tasks: renderTasks, stats: renderStats, settings: renderSettings };
   const fn = pages[state.page];
   if (fn) document.getElementById('content').innerHTML = fn();
 }
@@ -964,7 +972,7 @@ function renderHome() {
   }
 
   html += `</div>
-  <button class="btn-round" onclick="openAddTask()">
+  <button class="btn-round" onclick="openAddTaskToday()">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
   </button>`;
 
@@ -1083,6 +1091,132 @@ function renderTasks() {
 }
 
 // ── STATS ──────────────────────────────────────────────────────
+async function loadAllTasksPage() {
+  try {
+    const all = await api('getAllTasks');
+    state.allTasks = all;
+  } catch(e) {}
+}
+
+function renderAllTasks() {
+  const tasks = state.allTasks || [];
+  const pending = tasks.filter(t => t.status === 'pending');
+  const completed = tasks.filter(t => t.status === 'completed');
+
+  // Group pending by project
+  const byProject = {};
+  pending.forEach(t => {
+    if (!byProject[t.project_id]) byProject[t.project_id] = [];
+    byProject[t.project_id].push(t);
+  });
+
+  let html = `<div class="page-header fade-up">
+    <div>
+      <div class="page-title">All Tasks</div>
+      <div class="page-subtitle">${pending.length} pending · ${completed.length} done</div>
+    </div>
+    <button class="btn btn-primary" onclick="openAddTask()">+ Add</button>
+  </div>`;
+
+  if (pending.length === 0 && completed.length === 0) {
+    html += `<div class="empty fade-up">
+      <div class="empty-icon">✨</div>
+      <div class="empty-text">No tasks yet</div>
+      <div class="empty-sub">Create a project and add your first task</div>
+    </div>`;
+    return html;
+  }
+
+  // Pending grouped by project
+  if (Object.keys(byProject).length > 0) {
+    html += `<div class="task-group-label">PENDING</div>`;
+    for (const [projId, projTasks] of Object.entries(byProject)) {
+      const proj = state.projects.find(p => p.id === projId);
+      if (proj) {
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 20px 4px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${proj.color || '#7c6af7'};flex-shrink:0"></div>
+          <span style="font-size:12px;color:var(--text3);font-weight:600">${proj.name}</span>
+          <span class="tag tag-${proj.tag}" style="font-size:9px;padding:2px 6px">${proj.tag}</span>
+        </div>`;
+      }
+      projTasks.forEach(t => { html += renderTaskItem(t, proj); });
+    }
+  }
+
+  // Completed
+  if (completed.length > 0) {
+    html += `<div class="task-group-label" style="margin-top:12px">COMPLETED · ${completed.length}</div>`;
+    completed.slice(0, 20).forEach(t => {
+      const proj = state.projects.find(p => p.id === t.project_id);
+      html += renderTaskItem(t, proj);
+    });
+    if (completed.length > 20) {
+      html += `<div style="text-align:center;padding:12px;font-size:13px;color:var(--text3)">+${completed.length - 20} more completed tasks</div>`;
+    }
+  }
+
+  html += `<button class="btn-round" onclick="openAddTask()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+  </button>`;
+
+  return html;
+}
+
+// Smart + from Home — auto-fills today's date/time so task appears on home immediately
+function openAddTaskToday() {
+  const now = new Date();
+  // Format to datetime-local value: YYYY-MM-DDTHH:MM
+  const pad = n => String(n).padStart(2, '0');
+  const todayVal = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const projOptions = state.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  openModal(`
+    <div class="modal-title">Add Task</div>
+    <div style="font-size:12px;color:var(--accent2);margin-bottom:16px;font-weight:600">📅 Scheduling for today</div>
+    <div class="form-group">
+      <label class="form-label">TASK TITLE</label>
+      <input class="form-input" id="task-title" placeholder="What needs to be done?" autofocus>
+    </div>
+    <div class="form-group">
+      <label class="form-label">PROJECT</label>
+      <select class="form-select" id="task-project">${projOptions.length ? projOptions : '<option value="">No projects yet</option>'}</select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">NOTES</label>
+      <textarea class="form-textarea" id="task-notes" placeholder="Optional notes…"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">PRIORITY</label>
+        <select class="form-select" id="task-priority">
+          <option value="high">🔴 High</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">RECURRENCE</label>
+        <select class="form-select" id="task-recur">
+          <option value="none">Once</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">SCHEDULED</label>
+        <input class="form-input" id="task-scheduled" type="datetime-local" value="${todayVal}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">DUE DATE</label>
+        <input class="form-input" id="task-due" type="date" value="${todayVal.substring(0,10)}">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="submitAddTask()">Add Task</button>
+  `);
+}
+
 function renderStats() {
   if (!state.stats) {
     return `<div class="loading"><div class="spinner"></div> Loading stats…</div>`;
@@ -1223,7 +1357,8 @@ function openAddProject() {
         <option value="individual">Individual</option>
         <option value="professional">Professional</option>
         <option value="family">Family</option>
-        <option value="AJCETeaching">AJCETeaching</option>
+        <option value="ajce-teaching">AJCE Teaching</option>
+        <option value="ajce-other">AJCE Other</option>
       </select>
     </div>
     <div class="form-group">
@@ -1272,8 +1407,6 @@ function openEditProject(projectId, event) {
         <option value="individual" ${proj.tag==='individual'?'selected':''}>Individual</option>
         <option value="professional" ${proj.tag==='professional'?'selected':''}>Professional</option>
         <option value="family" ${proj.tag==='family'?'selected':''}>Family</option>
-        <option value="AJCETeaching" ${proj.tag==='AJCETeaching'?'selected':''}>AJCETeaching</option>
-
       </select>
     </div>
     <div class="form-group">
