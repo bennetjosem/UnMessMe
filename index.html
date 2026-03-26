@@ -636,7 +636,8 @@ let state = {
   settings: {},
   currentProjectId: null,
   pomodoroLog: {},
-  allTasks: []
+  allTasks: [],
+  fullPomodoroLog: []
 };
 
 // ── Timer State ────────────────────────────────────────────────
@@ -806,7 +807,7 @@ async function saveSetup() {
 }
 
 async function loadApp() {
-  await Promise.all([loadProjects(), loadTodayData(), loadSettings()]);
+  await Promise.all([loadProjects(), loadTodayData(), loadSettings(), loadFullPomodoroLog()]);
   render();
 }
 
@@ -872,6 +873,13 @@ async function loadPomodoroLog(taskId) {
   } catch(e) { return []; }
 }
 
+async function loadFullPomodoroLog() {
+  try {
+    const log = await api('getPomodoroLog', {});
+    state.fullPomodoroLog = log;
+  } catch(e) {}
+}
+
 // ── Navigation ─────────────────────────────────────────────────
 function navigate(page, params = {}) {
   state.page = page;
@@ -883,6 +891,7 @@ function navigate(page, params = {}) {
   document.getElementById('content').scrollTop = 0;
   render();
   if (page === 'tasks' && state.currentProjectId) loadTasks(state.currentProjectId).then(render);
+  if (page === 'projects') loadFullPomodoroLog().then(render);
   if (page === 'alltasks') loadAllTasksPage().then(render);
   if (page === 'stats') loadStats().then(render);
 }
@@ -1002,6 +1011,57 @@ function renderTaskItem(task, proj) {
 }
 
 // ── PROJECTS ───────────────────────────────────────────────────
+function getProjectActivity(projectId) {
+  // Build 14-day activity map from pomodoro log for this project
+  const log = state.fullPomodoroLog || [];
+  const today = new Date();
+  const days = {};
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().substring(0, 10);
+    days[key] = 0;
+  }
+  log.filter(p => p.project_id === projectId).forEach(p => {
+    const ds = p.completed_at ? p.completed_at.substring(0, 10) : '';
+    if (ds in days) days[ds]++;
+  });
+
+  // Compute streak
+  let streak = 0;
+  const sortedKeys = Object.keys(days).sort().reverse();
+  for (const key of sortedKeys) {
+    if (days[key] > 0) streak++;
+    else break;
+  }
+
+  return { days, streak };
+}
+
+function renderProjectStreakBar(projectId, color) {
+  const { days, streak } = getProjectActivity(projectId);
+  const sortedKeys = Object.keys(days).sort();
+  const boxes = sortedKeys.map(key => {
+    const count = days[key];
+    const opacity = count === 0 ? '0.12' : count === 1 ? '0.4' : count === 2 ? '0.65' : '1';
+    const title = key + (count > 0 ? `: ${count} session${count>1?'s':''}` : ': no activity');
+    return `<div title="${title}" style="
+      flex:1;height:20px;border-radius:3px;
+      background:${color || '#7c6af7'};
+      opacity:${opacity};
+      transition:opacity 0.2s;
+    "></div>`;
+  }).join('');
+
+  return `<div style="margin-top:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:10px;color:var(--text3);letter-spacing:0.5px">14 DAY ACTIVITY</span>
+      ${streak > 0 ? `<div class="project-streak">🔥 ${streak} day streak</div>` : '<span style="font-size:10px;color:var(--text3)">No streak yet</span>'}
+    </div>
+    <div style="display:flex;gap:3px;align-items:center">${boxes}</div>
+  </div>`;
+}
+
 function renderProjects() {
   let html = `<div class="page-header fade-up">
     <div>
@@ -1019,8 +1079,6 @@ function renderProjects() {
     </div>`;
   } else {
     state.projects.forEach((proj, i) => {
-      const projTasks = state.tasks.filter(t => t.project_id === proj.id);
-      const streak = 0; // Could calc per project
       html += `<div class="project-card fade-up" style="animation-delay:${i*0.05}s" onclick="navigate('tasks', {projectId:'${proj.id}'})">
         <div class="project-color-bar" style="background:${proj.color || '#7c6af7'}"></div>
         <div class="project-inner">
@@ -1029,13 +1087,11 @@ function renderProjects() {
               <div class="project-name">${proj.name}</div>
               <span class="tag tag-${proj.tag}">${proj.tag}</span>
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              ${streak > 0 ? `<div class="project-streak">🔥 ${streak}</div>` : ''}
-              <button class="btn-icon" onclick="openEditProject('${proj.id}', event)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-              </button>
-            </div>
+            <button class="btn-icon" onclick="openEditProject('${proj.id}', event)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+            </button>
           </div>
+          ${renderProjectStreakBar(proj.id, proj.color)}
         </div>
       </div>`;
     });
@@ -1666,6 +1722,14 @@ function getPomodoroHtml() {
       </button>
       <button class="timer-btn timer-btn-skip" onclick="skipTimer()">Skip →</button>
     </div>
+    ${timerState.running && timerState.mode === 'work' ? `
+    <div style="display:flex;justify-content:center;margin-bottom:12px">
+      <button class="timer-btn" onclick="doneEarly()" style="
+        background:rgba(52,211,153,0.15);color:var(--green);
+        border:1px solid rgba(52,211,153,0.3);width:100%;
+        font-size:14px;
+      ">✓ Done Early — Log & Stop</button>
+    </div>` : ''}
     <div class="session-log" id="session-log">
       <div class="session-log-title">THIS TASK'S SESSIONS</div>
       <div id="session-entries">${renderSessionEntries()}</div>
@@ -1773,6 +1837,66 @@ function skipTimer() {
   stopTimer();
   const nextMode = timerState.mode === 'work' ? 'short' : 'work';
   setTimerDuration(nextMode);
+  updatePomodoroUI();
+}
+
+async function doneEarly() {
+  if (!timerState.running && timerState.elapsed === 0) return;
+  stopTimer();
+
+  const elapsedMins = Math.max(1, Math.round(timerState.elapsed / 60));
+  const completedAt = new Date().toISOString();
+
+  // Log actual elapsed time
+  try {
+    await apiPost('logPomodoro', {
+      task_id: timerState.taskId,
+      task_title: timerState.taskTitle,
+      project_id: timerState.projectId,
+      duration_mins: elapsedMins,
+      started_at: timerState.startedAt,
+      completed_at: completedAt
+    });
+    timerState.sessions++;
+    await loadPomodoroLog(timerState.taskId);
+  } catch(e) {}
+
+  showToast(`✓ Logged ${elapsedMins} min — great work!`, 'success');
+
+  // Ask if they want to mark the task complete too
+  const mc = document.getElementById('modal-content');
+  if (mc) {
+    mc.innerHTML = `<div class="modal-handle"></div>
+      <div class="modal-title" style="margin-bottom:8px">Task Done?</div>
+      <p style="color:var(--text2);font-size:14px;margin-bottom:24px;line-height:1.6">
+        Logged <strong style="color:var(--green)">${elapsedMins} min</strong> of focus time.<br>
+        Do you want to mark <strong style="color:var(--text)">${escHtml(timerState.taskTitle)}</strong> as complete?
+      </p>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:10px" onclick="doneEarlyComplete()">
+        ✓ Yes, Mark Complete
+      </button>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="doneEarlyKeepOpen()">
+        Keep Task Open
+      </button>`;
+  }
+}
+
+async function doneEarlyComplete() {
+  try {
+    await apiPost('completeTask', { id: timerState.taskId });
+    closeModalDirect();
+    showToast('Task completed! 🎉', 'success');
+    await Promise.all([loadTodayData(), loadTasks(state.currentProjectId)]);
+    render();
+  } catch(e) {
+    showToast('Could not mark complete', 'error');
+    closeModalDirect();
+  }
+}
+
+function doneEarlyKeepOpen() {
+  // Reset timer state ready for next session on same task
+  setTimerDuration('work');
   updatePomodoroUI();
 }
 
