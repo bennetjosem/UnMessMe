@@ -30,6 +30,7 @@
   --tag-individual: #7c6af7;
   --tag-professional: #60a5fa;
   --tag-family: #f472b6;
+  --tag-AJCETeaching:#2dd4bf;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -125,6 +126,7 @@ nav {
 .tag-individual { background: rgba(124,106,247,0.2); color: var(--tag-individual); }
 .tag-professional { background: rgba(96,165,250,0.2); color: var(--tag-professional); }
 .tag-family { background: rgba(244,114,182,0.2); color: var(--tag-family); }
+.tag-AJCETeaching { background: rgba(45,212,191,0.2); color: var(--tag-AJCETeaching); }
 
 /* ── Priority ── */
 .priority-dot {
@@ -1221,6 +1223,7 @@ function openAddProject() {
         <option value="individual">Individual</option>
         <option value="professional">Professional</option>
         <option value="family">Family</option>
+        <option value="AJCETeaching">AJCETeaching</option>
       </select>
     </div>
     <div class="form-group">
@@ -1269,6 +1272,8 @@ function openEditProject(projectId, event) {
         <option value="individual" ${proj.tag==='individual'?'selected':''}>Individual</option>
         <option value="professional" ${proj.tag==='professional'?'selected':''}>Professional</option>
         <option value="family" ${proj.tag==='family'?'selected':''}>Family</option>
+        <option value="AJCETeaching" ${proj.tag==='AJCETeaching'?'selected':''}>AJCETeaching</option>
+
       </select>
     </div>
     <div class="form-group">
