@@ -643,7 +643,7 @@ let timerState = {
 const COLORS = ['#7c6af7','#60a5fa','#f472b6','#34d399','#fb923c','#fbbf24','#f87171','#a78bfa'];
 
 // ── Hardcoded Apps Script URL ──────────────────────────────────
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNurv8QZviNnznJnvZqHyz9mFMIYF_l0cugKi6EafGBMg7vs0Q6v8BDBKXaSMxwWuO/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLZ6sKYvKIYA7xVKWdtokW8haIaoMIRurvZrS7shLOuE-ylJDwzWOLZNpT2ObUQ6Lm/exec';
 
 // ── PIN helpers ────────────────────────────────────────────────
 async function hashPin(pin) {
@@ -801,14 +801,15 @@ async function saveSetup() {
 
   try {
     showToast('Connecting…');
-    await apiPostRaw('initSheets', {});
+    // Use GET to verify token and init sheets (avoids CORS preflight issues)
+    const res = await api('initSheets');
     localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
     document.getElementById('setup-screen').style.display = 'none';
-    // After setup, show lock screen immediately
     showLockScreen();
     setTimeout(addEnterBtn, 50);
     showToast('Connected! Enter your PIN to continue.', 'success');
   } catch(e) {
+    console.error('Setup error:', e);
     showToast('Connection failed. Check your auth token.', 'error');
   }
 }
@@ -832,21 +833,10 @@ async function api(action, params = {}) {
 }
 
 async function apiPost(action, data = {}) {
+  // Use text/plain to avoid CORS preflight — Apps Script reads it fine
   const res = await fetch(config.url || APPS_SCRIPT_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, token: config.token, data })
-  });
-  const result = await res.json();
-  if (result.error) throw new Error(result.error);
-  return result;
-}
-
-// Used during setup before config is fully set
-async function apiPostRaw(action, data = {}) {
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action, token: config.token, data })
   });
   const result = await res.json();
