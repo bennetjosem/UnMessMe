@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>TaskFlow</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Variables ── */
+:root {
+  --bg: #0d0d14;
+  --surface: #16161f;
+  --surface2: #1e1e2a;
+  --surface3: #26263a;
+  --border: #2a2a3d;
+  --text: #e8e8f0;
+  --text2: #8888a8;
+  --text3: #55556a;
+  --accent: #7c6af7;
+  --accent2: #a78bfa;
+  --green: #34d399;
+  --red: #f87171;
+  --orange: #fb923c;
+  --yellow: #fbbf24;
+  --blue: #60a5fa;
+  --pink: #f472b6;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --tag-individual: #7c6af7;
+  --tag-professional: #60a5fa;
+  --tag-family: #f472b6;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overscroll-behavior: none; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Layout ── */
+#app { display: flex; flex-direction: column; height: 100vh; }
+#content { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+
+/* ── Nav ── */
+nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  padding: 8px 0 env(safe-area-inset-bottom, 8px);
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 3px; padding: 6px 4px; cursor: pointer;
+  color: var(--text3); transition: color 0.2s;
+  background: none; border: none; font-family: inherit;
+}
+.nav-btn.active { color: var(--accent2); }
+.nav-btn svg { width: 22px; height: 22px; }
+.nav-btn span { font-size: 10px; font-weight: 500; letter-spacing: 0.5px; }
+
+/* ── Page Header ── */
+.page-header {
+  padding: 20px 20px 8px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.page-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px; color: var(--text);
+}
+.page-subtitle { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 18px; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 14px; font-weight: 500;
+  cursor: pointer; border: none; transition: all 0.15s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:active { background: #6255d4; transform: scale(0.97); }
+.btn-ghost { background: var(--surface2); color: var(--text2); }
+.btn-ghost:active { background: var(--surface3); }
+.btn-danger { background: rgba(248,113,113,0.15); color: var(--red); }
+.btn-icon {
+  width: 38px; height: 38px; border-radius: var(--radius-sm);
+  background: var(--surface2); color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none; transition: all 0.15s;
+}
+.btn-icon:active { background: var(--surface3); transform: scale(0.93); }
+.btn-round {
+  position: fixed; bottom: 90px; right: 20px; z-index: 50;
+  width: 54px; height: 54px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(124,106,247,0.5);
+  cursor: pointer; border: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-round:active { transform: scale(0.92); box-shadow: 0 2px 10px rgba(124,106,247,0.3); }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 0 16px 12px;
+}
+.card-row { display: flex; align-items: center; gap: 10px; }
+
+/* ── Tags ── */
+.tag {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.8px;
+  text-transform: uppercase; padding: 3px 8px;
+  border-radius: 20px;
+}
+.tag-individual { background: rgba(124,106,247,0.2); color: var(--tag-individual); }
+.tag-professional { background: rgba(96,165,250,0.2); color: var(--tag-professional); }
+.tag-family { background: rgba(244,114,182,0.2); color: var(--tag-family); }
+
+/* ── Priority ── */
+.priority-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.priority-high { background: var(--red); }
+.priority-medium { background: var(--yellow); }
+.priority-low { background: var(--green); }
+
+/* ── HOME PAGE ── */
+#page-home { padding: 0 0 20px; }
+
+.home-header {
+  padding: 24px 20px 16px;
+  background: linear-gradient(160deg, #1a1040 0%, var(--bg) 60%);
+}
+.greeting { font-size: 13px; color: var(--text2); margin-bottom: 2px; }
+.home-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 30px; color: var(--text);
+}
+.home-date { font-size: 13px; color: var(--text3); margin-top: 2px; }
+
+.score-strip {
+  display: flex; gap: 10px; padding: 0 16px 16px; overflow-x: auto;
+  scrollbar-width: none;
+}
+.score-strip::-webkit-scrollbar { display: none; }
+
+.score-chip {
+  flex-shrink: 0; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 10px 16px; text-align: center; min-width: 90px;
+}
+.score-chip .val {
+  font-size: 22px; font-weight: 600; color: var(--accent2);
+  font-family: 'DM Serif Display', serif;
+}
+.score-chip .lbl { font-size: 10px; color: var(--text3); margin-top: 2px; letter-spacing: 0.5px; }
+
+.section-title {
+  font-size: 11px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text3);
+  padding: 4px 20px 10px;
+}
+
+/* Task item */
+.task-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin: 0 16px 10px;
+  display: flex; align-items: flex-start; gap: 12px;
+  cursor: pointer; transition: border-color 0.15s;
+  position: relative; overflow: hidden;
+}
+.task-item:active { border-color: var(--accent); }
+.task-item.completed { opacity: 0.5; }
+.task-item.completed .task-title { text-decoration: line-through; }
+
+.task-check {
+  width: 22px; height: 22px; flex-shrink: 0;
+  border: 2px solid var(--border); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s; margin-top: 1px;
+}
+.task-check.done { background: var(--green); border-color: var(--green); }
+.task-check svg { display: none; }
+.task-check.done svg { display: block; }
+
+.task-body { flex: 1; min-width: 0; }
+.task-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+.task-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.task-project { font-size: 11px; color: var(--text3); }
+.task-time { font-size: 11px; color: var(--text2); }
+.task-pomodoro { font-size: 11px; color: var(--accent2); display: flex; align-items: center; gap: 3px; }
+
+.task-actions { display: flex; gap: 6px; align-items: center; }
+.pomodoro-mini {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: rgba(124,106,247,0.15); color: var(--accent2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none; flex-shrink: 0;
+}
+
+/* Cal event */
+.cal-event {
+  background: var(--surface2);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 10px 14px;
+  margin: 0 16px 8px;
+  display: flex; gap: 10px; align-items: center;
+}
+.cal-time { font-size: 12px; color: var(--text2); min-width: 50px; }
+.cal-title { font-size: 14px; color: var(--text); font-weight: 500; }
+.cal-cal { font-size: 11px; color: var(--text3); }
+
+/* Streak banner */
+.streak-banner {
+  margin: 0 16px 16px;
+  background: linear-gradient(135deg, rgba(124,106,247,0.2) 0%, rgba(167,139,250,0.1) 100%);
+  border: 1px solid rgba(124,106,247,0.3);
+  border-radius: var(--radius); padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+}
+.streak-fire { font-size: 26px; }
+.streak-info { flex: 1; }
+.streak-num { font-size: 18px; font-weight: 700; color: var(--accent2); }
+.streak-lbl { font-size: 12px; color: var(--text2); }
+
+/* ── PROJECTS PAGE ── */
+.project-card {
+  margin: 0 16px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden; cursor: pointer;
+  transition: border-color 0.15s;
+}
+.project-card:active { border-color: var(--accent); }
+
+.project-color-bar { height: 4px; }
+.project-inner { padding: 16px; }
+.project-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+.project-name { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.project-stats { display: flex; gap: 12px; margin-top: 10px; }
+.project-stat { font-size: 12px; color: var(--text3); }
+.project-stat span { color: var(--text2); font-weight: 600; }
+
+.project-streak {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--orange);
+  background: rgba(251,146,60,0.1); border-radius: 20px;
+  padding: 3px 8px;
+}
+
+/* ── TASK LIST (inside project) ── */
+.back-btn {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--accent2); font-size: 14px; font-weight: 500;
+  cursor: pointer; background: none; border: none;
+  font-family: inherit; padding: 0;
+}
+
+.task-group-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--text3);
+  padding: 8px 20px 6px;
+}
+
+/* ── POMODORO MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+  width: 100%; max-width: 500px;
+  padding: 24px 24px env(safe-area-inset-bottom, 24px);
+  transform: translateY(40px); transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  max-height: 92vh; overflow-y: auto;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-handle {
+  width: 40px; height: 4px; background: var(--border);
+  border-radius: 2px; margin: 0 auto 20px;
+}
+.modal-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px; margin-bottom: 6px;
+}
+
+/* Pomodoro Timer */
+.timer-display {
+  text-align: center; padding: 30px 0 20px;
+}
+.timer-mode {
+  font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 8px;
+}
+.timer-clock {
+  font-family: 'DM Serif Display', serif;
+  font-size: 72px; color: var(--text);
+  letter-spacing: -2px; line-height: 1;
+}
+.timer-clock.running { color: var(--accent2); }
+.timer-progress {
+  width: 100%; height: 4px; background: var(--surface3);
+  border-radius: 2px; margin: 16px 0;
+  overflow: hidden;
+}
+.timer-progress-bar {
+  height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 2px; transition: width 1s linear;
+}
+.timer-controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; }
+.timer-btn {
+  padding: 12px 24px; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer; border: none; transition: all 0.15s;
+}
+.timer-btn-main { background: var(--accent); color: #fff; min-width: 120px; }
+.timer-btn-main:active { transform: scale(0.97); }
+.timer-btn-skip { background: var(--surface2); color: var(--text2); }
+
+.mode-pills {
+  display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;
+}
+.mode-pill {
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  border: 1px solid var(--border); color: var(--text3);
+  background: transparent; font-family: inherit;
+  transition: all 0.15s;
+}
+.mode-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.session-log {
+  border-top: 1px solid var(--border); padding-top: 16px;
+}
+.session-log-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  color: var(--text3); text-transform: uppercase; margin-bottom: 10px;
+}
+.session-entry {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.session-entry:last-child { border-bottom: none; }
+.session-entry .dur { color: var(--accent2); font-weight: 600; }
+
+/* ── ADD/EDIT FORMS ── */
+.form-group { margin-bottom: 16px; }
+.form-label {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
+  color: var(--text2); margin-bottom: 6px; display: block;
+}
+.form-input, .form-select, .form-textarea {
+  width: 100%; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); font-family: inherit; font-size: 15px;
+  padding: 12px 14px; outline: none; transition: border-color 0.15s;
+  appearance: none; -webkit-appearance: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--accent);
+}
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-row { display: flex; gap: 10px; }
+.form-row .form-group { flex: 1; }
+
+.color-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.color-swatch {
+  width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+  border: 3px solid transparent; transition: transform 0.15s, border-color 0.15s;
+}
+.color-swatch.selected { border-color: #fff; transform: scale(1.1); }
+
+/* ── STATS PAGE ── */
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  gap: 3px; padding: 0 16px;
+}
+.heatmap-cell {
+  aspect-ratio: 1; border-radius: 3px;
+  background: var(--surface2);
+}
+.heatmap-cell[data-count="0"] { background: var(--surface2); }
+.heatmap-cell[data-count="1"] { background: rgba(124,106,247,0.3); }
+.heatmap-cell[data-count="2"] { background: rgba(124,106,247,0.5); }
+.heatmap-cell[data-count="3"] { background: rgba(124,106,247,0.7); }
+.heatmap-cell[data-count="4"] { background: var(--accent2); }
+
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  margin: 0 8px; text-align: center; flex: 1;
+}
+.stat-val {
+  font-family: 'DM Serif Display', serif;
+  font-size: 32px; color: var(--accent2);
+}
+.stat-lbl { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+.stats-row { display: flex; gap: 0; padding: 0 16px 16px; }
+.stats-row .stat-card { margin: 0; }
+.stats-row .stat-card + .stat-card { border-left: none; border-radius: 0; }
+.stats-row .stat-card:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.stats-row .stat-card:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+
+/* ── SETTINGS PAGE ── */
+.settings-section { margin-bottom: 24px; }
+.settings-section-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text3);
+  padding: 0 20px 10px;
+}
+.settings-item {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.settings-item:last-child { border-bottom: 1px solid var(--border); }
+.settings-item-label { font-size: 15px; color: var(--text); }
+.settings-item-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.settings-item input[type=number] {
+  width: 70px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); font-family: inherit; font-size: 15px;
+  padding: 8px 12px; text-align: center; outline: none;
+}
+
+/* ── EMPTY STATE ── */
+.empty {
+  text-align: center; padding: 48px 24px; color: var(--text3);
+}
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-text { font-size: 15px; color: var(--text2); margin-bottom: 6px; }
+.empty-sub { font-size: 13px; }
+
+/* ── LOCK SCREEN ── */
+#lock-screen {
+  position: fixed; inset: 0; z-index: 400;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 32px;
+}
+.lock-logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 42px; color: var(--accent2); margin-bottom: 6px;
+}
+.lock-sub { font-size: 14px; color: var(--text3); margin-bottom: 40px; }
+.lock-icon { font-size: 40px; margin-bottom: 16px; }
+.lock-label { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
+
+.pin-dots {
+  display: flex; gap: 14px; margin-bottom: 32px;
+}
+.pin-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--border); background: transparent;
+  transition: all 0.15s;
+}
+.pin-dot.filled {
+  background: var(--accent2);
+  border-color: var(--accent2);
+}
+.setup-logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 48px; color: var(--accent2);
+  margin-bottom: 8px;
+}
+.setup-sub { font-size: 15px; color: var(--text2); text-align: center; margin-bottom: 32px; }
+.setup-card {
+  width: 100%; max-width: 400px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px;
+}
+.setup-step {
+  font-size: 12px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--accent2); margin-bottom: 8px;
+}
+.setup-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+.setup-desc { font-size: 14px; color: var(--text2); margin-bottom: 20px; line-height: 1.6; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 24px; padding: 10px 20px;
+  font-size: 14px; color: var(--text);
+  z-index: 500; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  white-space: nowrap; box-shadow: var(--shadow);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.error { border-color: var(--red); color: var(--red); }
+
+/* ── Loading ── */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 32px; color: var(--text3); font-size: 14px;
+}
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.3s ease forwards; }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen" style="display:none">
+  <div class="setup-logo">TaskFlow</div>
+  <p class="setup-sub">Your personal productivity command center</p>
+  <div class="setup-card">
+    <div class="setup-step">One-time Setup</div>
+    <div class="setup-title">Enter Auth Token</div>
+    <div class="setup-desc">
+      Open your Google Sheet &rarr; <strong>Settings</strong> tab and copy the value next to <code>authToken</code>.
+    </div>
+    <div class="form-group">
+      <label class="form-label">AUTH TOKEN</label>
+      <input class="form-input" id="setup-token" type="text" placeholder="Paste your auth token" autocomplete="off">
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="saveSetup()">
+      Connect &amp; Initialize
+    </button>
+  </div>
+</div>
+
+<!-- LOCK SCREEN -->
+<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:400;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:32px">
+  <div style="font-family:'DM Serif Display',serif;font-size:42px;color:var(--accent2);margin-bottom:6px">TaskFlow</div>
+  <div style="font-size:14px;color:var(--text3);margin-bottom:48px">Enter your PIN to continue</div>
+  <div style="font-size:36px;margin-bottom:12px">&#128274;</div>
+  <div style="font-size:14px;color:var(--text2);margin-bottom:20px" id="lock-label">PIN</div>
+  <div style="display:flex;gap:14px;margin-bottom:32px" id="pin-dots"></div>
+  <div style="display:grid;grid-template-columns:repeat(3,72px);gap:12px" id="pin-pad"></div>
+  <div style="margin-top:20px;font-size:13px;color:var(--red);min-height:20px" id="lock-error"></div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+  <div id="content"></div>
+
+  <!-- Bottom Nav -->
+  <nav>
+    <button class="nav-btn active" id="nav-home" onclick="navigate('home')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="nav-btn" id="nav-projects" onclick="navigate('projects')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Projects</span>
+    </button>
+    <button class="nav-btn" id="nav-stats" onclick="navigate('stats')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      <span>Stats</span>
+    </button>
+    <button class="nav-btn" id="nav-settings" onclick="navigate('settings')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Config & State ─────────────────────────────────────────────
+const CONFIG_KEY = 'taskflow_config';
+let config = {};
+let state = {
+  page: 'home',
+  projects: [],
+  tasks: [],
+  todayTasks: [],
+  calEvents: [],
+  stats: null,
+  settings: {},
+  currentProjectId: null,
+  pomodoroLog: {}
+};
+
+// ── Timer State ────────────────────────────────────────────────
+let timerState = {
+  running: false,
+  mode: 'work', // work | short | long
+  elapsed: 0,
+  total: 25 * 60,
+  taskId: null,
+  taskTitle: '',
+  projectId: null,
+  startedAt: null,
+  interval: null,
+  sessions: 0
+};
+
+const COLORS = ['#7c6af7','#60a5fa','#f472b6','#34d399','#fb923c','#fbbf24','#f87171','#a78bfa'];
+
+// ── Hardcoded Apps Script URL ──────────────────────────────────
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNurv8QZviNnznJnvZqHyz9mFMIYF_l0cugKi6EafGBMg7vs0Q6v8BDBKXaSMxwWuO/exec';
+
+// ── PIN helpers ────────────────────────────────────────────────
+async function hashPin(pin) {
+  const enc = new TextEncoder().encode(pin);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ── Lock screen ────────────────────────────────────────────────
+let pinBuffer = '';
+
+function showLockScreen() {
+  const ls = document.getElementById('lock-screen');
+  ls.style.display = 'flex';
+  pinBuffer = '';
+  renderPinDots();
+  renderPinPad();
+}
+
+function hideLockScreen() {
+  document.getElementById('lock-screen').style.display = 'none';
+  // Store unlock timestamp in sessionStorage — valid for this tab session
+  sessionStorage.setItem('tf_unlocked', Date.now().toString());
+}
+
+function isUnlocked() {
+  return !!sessionStorage.getItem('tf_unlocked');
+}
+
+function renderPinDots() {
+  const MAX = 8;
+  document.getElementById('pin-dots').innerHTML = Array.from({length: MAX}, (_, i) =>
+    `<div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--border);background:${i < pinBuffer.length ? 'var(--accent2)' : 'transparent'};transition:all 0.15s"></div>`
+  ).join('');
+}
+
+function renderPinPad() {
+  const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  document.getElementById('pin-pad').innerHTML = keys.map(k => {
+    if (!k) return '<div></div>';
+    const isBack = k === '⌫';
+    return `<button onclick="pinKey('${k}')" style="
+      height:72px;border-radius:16px;border:1px solid var(--border);
+      background:${isBack ? 'var(--surface2)' : 'var(--surface)'};
+      color:${isBack ? 'var(--red)' : 'var(--text)'};
+      font-family:inherit;font-size:${isBack ? '22px' : '24px'};
+      font-weight:500;cursor:pointer;transition:all 0.1s;
+      -webkit-tap-highlight-color:transparent;
+    " ontouchstart="this.style.background='var(--surface3)'"
+       ontouchend="this.style.background='${isBack ? 'var(--surface2)' : 'var(--surface)'}'">
+      ${k}
+    </button>`;
+  }).join('');
+}
+
+async function pinKey(k) {
+  const errEl = document.getElementById('lock-error');
+  errEl.textContent = '';
+  if (k === '⌫') {
+    pinBuffer = pinBuffer.slice(0, -1);
+    renderPinDots();
+    return;
+  }
+  if (pinBuffer.length >= 20) return;
+  pinBuffer += k;
+  renderPinDots();
+}
+
+// Also allow keyboard input on lock screen
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('lock-screen').style.display === 'flex') {
+    if (e.key >= '0' && e.key <= '9') pinKey(e.key);
+    else if (e.key === 'Backspace') pinKey('⌫');
+    else if (e.key === 'Enter') submitPin();
+  }
+});
+
+async function submitPin() {
+  if (!pinBuffer) return;
+  const errEl = document.getElementById('lock-error');
+  errEl.textContent = 'Verifying…';
+  try {
+    const hash = await hashPin(pinBuffer);
+    const res = await apiPost('verifyPin', { pinHash: hash });
+    if (res.success) {
+      hideLockScreen();
+      loadApp();
+    } else {
+      errEl.textContent = 'Incorrect PIN. Try again.';
+      pinBuffer = '';
+      renderPinDots();
+      // Shake animation
+      const dots = document.getElementById('pin-dots');
+      dots.style.animation = 'shake 0.4s ease';
+      setTimeout(() => dots.style.animation = '', 400);
+    }
+  } catch(e) {
+    errEl.textContent = 'Could not reach server. Check connection.';
+    pinBuffer = '';
+    renderPinDots();
+  }
+}
+
+// Add Enter button below pin pad after render
+function addEnterBtn() {
+  const pad = document.getElementById('pin-pad');
+  if (!pad) return;
+  const existing = document.getElementById('pin-enter-btn');
+  if (existing) return;
+  const btn = document.createElement('button');
+  btn.id = 'pin-enter-btn';
+  btn.textContent = 'Unlock';
+  btn.onclick = submitPin;
+  btn.style.cssText = `
+    grid-column: 1/-1; margin-top:4px; padding:16px;
+    border-radius:16px; border:none;
+    background:var(--accent); color:#fff;
+    font-family:inherit; font-size:16px; font-weight:600;
+    cursor:pointer; letter-spacing:0.5px;
+  `;
+  pad.after(btn);
+}
+
+// ── Init ───────────────────────────────────────────────────────
+window.onload = () => {
+  // URL is always hardcoded
+  const saved = localStorage.getItem(CONFIG_KEY);
+  if (saved) {
+    try {
+      config = JSON.parse(saved);
+      config.url = APPS_SCRIPT_URL; // Always use hardcoded URL
+      if (config.token) {
+        // Token exists — show lock screen
+        if (isUnlocked()) {
+          // Already unlocked this session — skip lock screen
+          document.getElementById('app').style.display = 'flex';
+          loadApp();
+        } else {
+          showLockScreen();
+          setTimeout(addEnterBtn, 50);
+        }
+        return;
+      }
+    } catch(e) {}
+  }
+  // No token yet — show setup
+  document.getElementById('setup-screen').style.display = 'flex';
+};
+
+async function saveSetup() {
+  const token = document.getElementById('setup-token').value.trim();
+  if (!token) { showToast('Please enter your auth token', 'error'); return; }
+
+  config = { url: APPS_SCRIPT_URL, token };
+
+  try {
+    showToast('Connecting…');
+    await apiPostRaw('initSheets', {});
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    document.getElementById('setup-screen').style.display = 'none';
+    // After setup, show lock screen immediately
+    showLockScreen();
+    setTimeout(addEnterBtn, 50);
+    showToast('Connected! Enter your PIN to continue.', 'success');
+  } catch(e) {
+    showToast('Connection failed. Check your auth token.', 'error');
+  }
+}
+
+async function loadApp() {
+  await Promise.all([loadProjects(), loadTodayData(), loadSettings()]);
+  render();
+}
+
+// ── API ────────────────────────────────────────────────────────
+async function api(action, params = {}) {
+  const url = new URL(config.url);
+  url.searchParams.set('action', action);
+  url.searchParams.set('token', config.token);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+
+  const res = await fetch(url.toString());
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+async function apiPost(action, data = {}) {
+  const res = await fetch(config.url || APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, token: config.token, data })
+  });
+  const result = await res.json();
+  if (result.error) throw new Error(result.error);
+  return result;
+}
+
+// Used during setup before config is fully set
+async function apiPostRaw(action, data = {}) {
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, token: config.token, data })
+  });
+  const result = await res.json();
+  if (result.error) throw new Error(result.error);
+  return result;
+}
+
+// ── Loaders ────────────────────────────────────────────────────
+async function loadProjects() {
+  try { state.projects = await api('getProjects'); } catch(e) {}
+}
+
+async function loadTodayData() {
+  try {
+    const today = new Date().toISOString().substring(0, 10);
+    const [tasks, cal] = await Promise.all([
+      api('getTodayTasks'),
+      api('getCalendarEvents', { date: today })
+    ]);
+    state.todayTasks = tasks;
+    state.calEvents = Array.isArray(cal) ? cal : [];
+  } catch(e) {}
+}
+
+async function loadTasks(projectId) {
+  try { state.tasks = await api('getTasks', { projectId }); } catch(e) {}
+}
+
+async function loadStats() {
+  try { state.stats = await api('getStats'); } catch(e) {}
+}
+
+async function loadSettings() {
+  try { state.settings = await api('getSettings'); } catch(e) {}
+}
+
+async function loadPomodoroLog(taskId) {
+  try {
+    const log = await api('getPomodoroLog', { taskId });
+    state.pomodoroLog[taskId] = log;
+    return log;
+  } catch(e) { return []; }
+}
+
+// ── Navigation ─────────────────────────────────────────────────
+function navigate(page, params = {}) {
+  state.page = page;
+  if (params.projectId !== undefined) state.currentProjectId = params.projectId;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const navMap = { home: 'nav-home', projects: 'nav-projects', stats: 'nav-stats', settings: 'nav-settings', tasks: 'nav-projects' };
+  const nb = document.getElementById(navMap[page]);
+  if (nb) nb.classList.add('active');
+  document.getElementById('content').scrollTop = 0;
+  render();
+  if (page === 'tasks' && state.currentProjectId) loadTasks(state.currentProjectId).then(render);
+  if (page === 'stats') loadStats().then(render);
+}
+
+function render() {
+  const pages = { home: renderHome, projects: renderProjects, tasks: renderTasks, stats: renderStats, settings: renderSettings };
+  const fn = pages[state.page];
+  if (fn) document.getElementById('content').innerHTML = fn();
+}
+
+// ── HOME ───────────────────────────────────────────────────────
+function renderHome() {
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const dateStr = now.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const streak = state.stats?.streaks?.currentStreak || 0;
+  const todayCount = state.todayTasks.length;
+  const doneCount = state.todayTasks.filter(t => t.status === 'completed').length;
+  const totalPom = state.stats?.totalPomodoros || 0;
+
+  let html = `<div id="page-home">
+  <div class="home-header fade-up">
+    <div class="greeting">${greeting} 👋</div>
+    <div class="home-title">Let's get things done</div>
+    <div class="home-date">${dateStr}</div>
+  </div>
+
+  <div class="score-strip fade-up">
+    <div class="score-chip">
+      <div class="val">${doneCount}/${todayCount}</div>
+      <div class="lbl">TASKS TODAY</div>
+    </div>
+    <div class="score-chip">
+      <div class="val">${streak}</div>
+      <div class="lbl">DAY STREAK</div>
+    </div>
+    <div class="score-chip">
+      <div class="val">${totalPom}</div>
+      <div class="lbl">POMODOROS</div>
+    </div>
+    <div class="score-chip">
+      <div class="val">${state.projects.length}</div>
+      <div class="lbl">PROJECTS</div>
+    </div>
+  </div>`;
+
+  if (streak > 0) {
+    html += `<div class="streak-banner fade-up">
+      <div class="streak-fire">🔥</div>
+      <div class="streak-info">
+        <div class="streak-num">${streak} day streak!</div>
+        <div class="streak-lbl">Keep it up — don't break the chain</div>
+      </div>
+    </div>`;
+  }
+
+  // Calendar events
+  if (state.calEvents.length > 0) {
+    html += `<div class="section-title">📅 TODAY'S CALENDAR</div>`;
+    state.calEvents.slice(0, 5).forEach(ev => {
+      const timeStr = ev.isAllDay ? 'All day' : new Date(ev.start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      html += `<div class="cal-event fade-up">
+        <div class="cal-time">${timeStr}</div>
+        <div>
+          <div class="cal-title">${ev.title}</div>
+          <div class="cal-cal">${ev.calendar}</div>
+        </div>
+      </div>`;
+    });
+  }
+
+  // Today's tasks
+  html += `<div class="section-title">✅ TODAY'S TASKS</div>`;
+  if (state.todayTasks.length === 0) {
+    html += `<div class="empty fade-up">
+      <div class="empty-icon">🌿</div>
+      <div class="empty-text">No tasks scheduled for today</div>
+      <div class="empty-sub">Add tasks with today's date to see them here</div>
+    </div>`;
+  } else {
+    state.todayTasks.forEach(task => {
+      const proj = state.projects.find(p => p.id === task.project_id);
+      html += renderTaskItem(task, proj);
+    });
+  }
+
+  html += `</div>
+  <button class="btn-round" onclick="openAddTask()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+  </button>`;
+
+  return html;
+}
+
+function renderTaskItem(task, proj) {
+  const isDone = task.status === 'completed';
+  const timeStr = task.scheduled_date ? new Date(task.scheduled_date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+  return `<div class="task-item ${isDone ? 'completed' : ''} fade-up">
+    <div class="task-check ${isDone ? 'done' : ''}" onclick="toggleTask('${task.id}', event)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+    </div>
+    <div class="task-body" onclick="openTaskDetail('${task.id}')">
+      <div class="task-title">${task.title}</div>
+      <div class="task-meta">
+        <div class="priority-dot priority-${task.priority}"></div>
+        ${proj ? `<div class="task-project">${proj.name}</div>` : ''}
+        ${timeStr ? `<div class="task-time">${timeStr}</div>` : ''}
+        ${task.pomodoro_count > 0 ? `<div class="task-pomodoro">🍅 ${task.pomodoro_count}</div>` : ''}
+      </div>
+    </div>
+    <button class="pomodoro-mini" onclick="openPomodoro('${task.id}', '${escHtml(task.title)}', '${task.project_id}', event)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+    </button>
+  </div>`;
+}
+
+// ── PROJECTS ───────────────────────────────────────────────────
+function renderProjects() {
+  let html = `<div class="page-header fade-up">
+    <div>
+      <div class="page-title">Projects</div>
+      <div class="page-subtitle">${state.projects.length} active project${state.projects.length !== 1 ? 's' : ''}</div>
+    </div>
+    <button class="btn btn-primary" onclick="openAddProject()">+ New</button>
+  </div>`;
+
+  if (state.projects.length === 0) {
+    html += `<div class="empty fade-up">
+      <div class="empty-icon">📁</div>
+      <div class="empty-text">No projects yet</div>
+      <div class="empty-sub">Create your first project to get started</div>
+    </div>`;
+  } else {
+    state.projects.forEach((proj, i) => {
+      const projTasks = state.tasks.filter(t => t.project_id === proj.id);
+      const streak = 0; // Could calc per project
+      html += `<div class="project-card fade-up" style="animation-delay:${i*0.05}s" onclick="navigate('tasks', {projectId:'${proj.id}'})">
+        <div class="project-color-bar" style="background:${proj.color || '#7c6af7'}"></div>
+        <div class="project-inner">
+          <div class="project-top">
+            <div>
+              <div class="project-name">${proj.name}</div>
+              <span class="tag tag-${proj.tag}">${proj.tag}</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              ${streak > 0 ? `<div class="project-streak">🔥 ${streak}</div>` : ''}
+              <button class="btn-icon" onclick="openEditProject('${proj.id}', event)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+
+  return html;
+}
+
+// ── TASKS (inside project) ─────────────────────────────────────
+function renderTasks() {
+  const proj = state.projects.find(p => p.id === state.currentProjectId);
+  if (!proj) return renderProjects();
+
+  const pending = state.tasks.filter(t => t.project_id === state.currentProjectId && t.status === 'pending');
+  const completed = state.tasks.filter(t => t.project_id === state.currentProjectId && t.status === 'completed');
+
+  let html = `<div class="page-header fade-up">
+    <button class="back-btn" onclick="navigate('projects')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      Back
+    </button>
+  </div>
+  <div style="padding:0 20px 16px" class="fade-up">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <div style="width:12px;height:12px;border-radius:50%;background:${proj.color || '#7c6af7'};flex-shrink:0"></div>
+      <div class="page-title" style="font-size:24px">${proj.name}</div>
+    </div>
+    <span class="tag tag-${proj.tag}">${proj.tag}</span>
+  </div>`;
+
+  if (pending.length === 0 && completed.length === 0) {
+    html += `<div class="empty fade-up">
+      <div class="empty-icon">✨</div>
+      <div class="empty-text">No tasks yet</div>
+      <div class="empty-sub">Add your first task to this project</div>
+    </div>`;
+  } else {
+    if (pending.length > 0) {
+      html += `<div class="task-group-label">PENDING · ${pending.length}</div>`;
+      pending.forEach(t => { html += renderTaskItem(t, proj); });
+    }
+    if (completed.length > 0) {
+      html += `<div class="task-group-label" style="margin-top:12px">COMPLETED · ${completed.length}</div>`;
+      completed.forEach(t => { html += renderTaskItem(t, proj); });
+    }
+  }
+
+  html += `<button class="btn-round" onclick="openAddTask('${state.currentProjectId}')">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+  </button>`;
+
+  return html;
+}
+
+// ── STATS ──────────────────────────────────────────────────────
+function renderStats() {
+  if (!state.stats) {
+    return `<div class="loading"><div class="spinner"></div> Loading stats…</div>`;
+  }
+
+  const { totalPomodoros, totalMins, streaks, heatmap } = state.stats;
+  const hours = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+
+  let html = `<div class="page-header fade-up">
+    <div>
+      <div class="page-title">Your Stats</div>
+      <div class="page-subtitle">Progress over time</div>
+    </div>
+  </div>
+
+  <div class="stats-row fade-up">
+    <div class="stat-card"><div class="stat-val">${streaks.currentStreak}</div><div class="stat-lbl">Current Streak</div></div>
+    <div class="stat-card"><div class="stat-val">${streaks.longestStreak}</div><div class="stat-lbl">Longest Streak</div></div>
+    <div class="stat-card"><div class="stat-val">${totalPomodoros}</div><div class="stat-lbl">Pomodoros</div></div>
+  </div>
+
+  <div class="card fade-up" style="text-align:center;margin:0 16px 16px">
+    <div class="stat-val">${hours}h ${mins}m</div>
+    <div class="stat-lbl" style="margin-top:4px">Total Focus Time</div>
+  </div>
+
+  <div class="section-title">ACTIVITY — LAST 90 DAYS</div>
+  <div class="heatmap-grid fade-up" style="margin-bottom:16px">`;
+
+  const sortedDays = Object.keys(heatmap).sort();
+  sortedDays.forEach(day => {
+    const count = Math.min(heatmap[day], 4);
+    const date = new Date(day).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+    html += `<div class="heatmap-cell" data-count="${count}" title="${date}: ${heatmap[day]} sessions"></div>`;
+  });
+
+  html += `</div></div>`;
+  return html;
+}
+
+// ── SETTINGS ───────────────────────────────────────────────────
+function renderSettings() {
+  const s = state.settings;
+  return `<div class="page-header fade-up">
+    <div>
+      <div class="page-title">Settings</div>
+    </div>
+    <button class="btn btn-primary" onclick="saveSettingsForm()">Save</button>
+  </div>
+
+  <div class="settings-section fade-up">
+    <div class="settings-section-title">POMODORO</div>
+    <div class="settings-item">
+      <div><div class="settings-item-label">Work Duration</div><div class="settings-item-sub">Focus session length</div></div>
+      <input type="number" id="s-work" value="${s.pomodoroWork || 25}" min="5" max="90"> min
+    </div>
+    <div class="settings-item">
+      <div><div class="settings-item-label">Short Break</div></div>
+      <input type="number" id="s-short" value="${s.pomodoroShortBreak || 5}" min="1" max="30"> min
+    </div>
+    <div class="settings-item">
+      <div><div class="settings-item-label">Long Break</div></div>
+      <input type="number" id="s-long" value="${s.pomodoroLongBreak || 15}" min="5" max="60"> min
+    </div>
+    <div class="settings-item">
+      <div><div class="settings-item-label">Long Break After</div><div class="settings-item-sub">Sessions before long break</div></div>
+      <input type="number" id="s-after" value="${s.longBreakAfter || 4}" min="2" max="8">
+    </div>
+  </div>
+
+  <div class="settings-section fade-up">
+    <div class="settings-section-title">CONNECTION</div>
+    <div class="settings-item" onclick="lockApp()" style="cursor:pointer">
+      <div><div class="settings-item-label">Lock App</div><div class="settings-item-sub">Return to PIN screen</div></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text3)"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+    </div>
+    <div class="settings-item" onclick="openResetSetup()" style="cursor:pointer">
+      <div><div class="settings-item-label">Reconnect</div><div class="settings-item-sub">Change auth token</div></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text3)"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+    </div>
+  </div>`;
+}
+
+async function saveSettingsForm() {
+  const data = {
+    pomodoroWork: document.getElementById('s-work').value,
+    pomodoroShortBreak: document.getElementById('s-short').value,
+    pomodoroLongBreak: document.getElementById('s-long').value,
+    longBreakAfter: document.getElementById('s-after').value
+  };
+  try {
+    await apiPost('saveSettings', data);
+    state.settings = { ...state.settings, ...data };
+    showToast('Settings saved ✓', 'success');
+  } catch(e) { showToast('Failed to save', 'error'); }
+}
+
+function lockApp() {
+  sessionStorage.removeItem('tf_unlocked');
+  document.getElementById('app').style.display = 'none';
+  showLockScreen();
+  setTimeout(addEnterBtn, 50);
+}
+
+function openResetSetup() {
+  localStorage.removeItem(CONFIG_KEY);
+  sessionStorage.removeItem('tf_unlocked');
+  location.reload();
+}
+
+// ── MODALS ─────────────────────────────────────────────────────
+function openModal(html) {
+  document.getElementById('modal-content').innerHTML = `<div class="modal-handle"></div>${html}`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function closeModalDirect() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// ── ADD PROJECT ────────────────────────────────────────────────
+function openAddProject() {
+  openModal(`
+    <div class="modal-title">New Project</div>
+    <div style="margin-bottom:20px"></div>
+    <div class="form-group">
+      <label class="form-label">PROJECT NAME</label>
+      <input class="form-input" id="proj-name" placeholder="e.g. Website Redesign" autofocus>
+    </div>
+    <div class="form-group">
+      <label class="form-label">CATEGORY</label>
+      <select class="form-select" id="proj-tag">
+        <option value="individual">Individual</option>
+        <option value="professional">Professional</option>
+        <option value="family">Family</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">COLOR</label>
+      <div class="color-picker" id="color-picker">
+        ${COLORS.map((c, i) => `<div class="color-swatch ${i===0?'selected':''}" style="background:${c}" data-color="${c}" onclick="selectColor(this)"></div>`).join('')}
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="submitAddProject()">Create Project</button>
+  `);
+}
+
+function selectColor(el) {
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+async function submitAddProject() {
+  const name = document.getElementById('proj-name').value.trim();
+  const tag = document.getElementById('proj-tag').value;
+  const color = document.querySelector('.color-swatch.selected')?.dataset.color || '#7c6af7';
+  if (!name) { showToast('Enter a project name', 'error'); return; }
+  try {
+    await apiPost('addProject', { name, tag, color });
+    closeModalDirect();
+    showToast('Project created ✓', 'success');
+    await loadProjects();
+    render();
+  } catch(e) { showToast('Failed to create project', 'error'); }
+}
+
+function openEditProject(projectId, event) {
+  event.stopPropagation();
+  const proj = state.projects.find(p => p.id === projectId);
+  if (!proj) return;
+  openModal(`
+    <div class="modal-title">Edit Project</div>
+    <div style="margin-bottom:20px"></div>
+    <div class="form-group">
+      <label class="form-label">PROJECT NAME</label>
+      <input class="form-input" id="proj-name" value="${escHtml(proj.name)}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">CATEGORY</label>
+      <select class="form-select" id="proj-tag">
+        <option value="individual" ${proj.tag==='individual'?'selected':''}>Individual</option>
+        <option value="professional" ${proj.tag==='professional'?'selected':''}>Professional</option>
+        <option value="family" ${proj.tag==='family'?'selected':''}>Family</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">COLOR</label>
+      <div class="color-picker">
+        ${COLORS.map(c => `<div class="color-swatch ${c===proj.color?'selected':''}" style="background:${c}" data-color="${c}" onclick="selectColor(this)"></div>`).join('')}
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="submitEditProject('${projectId}')">Save Changes</button>
+    <button class="btn btn-danger" style="width:100%;justify-content:center;margin-top:10px" onclick="submitDeleteProject('${projectId}')">Delete Project</button>
+  `);
+}
+
+async function submitEditProject(id) {
+  const name = document.getElementById('proj-name').value.trim();
+  const tag = document.getElementById('proj-tag').value;
+  const color = document.querySelector('.color-swatch.selected')?.dataset.color;
+  try {
+    await apiPost('updateProject', { id, name, tag, color });
+    closeModalDirect();
+    showToast('Project updated ✓', 'success');
+    await loadProjects();
+    render();
+  } catch(e) { showToast('Update failed', 'error'); }
+}
+
+async function submitDeleteProject(id) {
+  if (!confirm('Delete this project? Tasks will remain but project will be archived.')) return;
+  try {
+    await apiPost('deleteProject', { id });
+    closeModalDirect();
+    showToast('Project deleted', 'success');
+    await loadProjects();
+    navigate('projects');
+  } catch(e) { showToast('Delete failed', 'error'); }
+}
+
+// ── ADD TASK ───────────────────────────────────────────────────
+function openAddTask(projectId) {
+  const projOptions = state.projects.map(p => `<option value="${p.id}" ${p.id===projectId?'selected':''}>${p.name}</option>`).join('');
+  openModal(`
+    <div class="modal-title">Add Task</div>
+    <div style="margin-bottom:20px"></div>
+    <div class="form-group">
+      <label class="form-label">TASK TITLE</label>
+      <input class="form-input" id="task-title" placeholder="What needs to be done?" autofocus>
+    </div>
+    <div class="form-group">
+      <label class="form-label">PROJECT</label>
+      <select class="form-select" id="task-project">${projOptions}</select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">NOTES</label>
+      <textarea class="form-textarea" id="task-notes" placeholder="Optional notes…"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">PRIORITY</label>
+        <select class="form-select" id="task-priority">
+          <option value="high">🔴 High</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">RECURRENCE</label>
+        <select class="form-select" id="task-recur">
+          <option value="none">Once</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">SCHEDULED DATE/TIME</label>
+        <input class="form-input" id="task-scheduled" type="datetime-local">
+      </div>
+      <div class="form-group">
+        <label class="form-label">DUE DATE</label>
+        <input class="form-input" id="task-due" type="date">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="submitAddTask()">Add Task</button>
+  `);
+}
+
+async function submitAddTask() {
+  const title = document.getElementById('task-title').value.trim();
+  const project_id = document.getElementById('task-project').value;
+  const notes = document.getElementById('task-notes').value;
+  const priority = document.getElementById('task-priority').value;
+  const recurrence = document.getElementById('task-recur').value;
+  const scheduled_date = document.getElementById('task-scheduled').value;
+  const due_date = document.getElementById('task-due').value;
+  if (!title) { showToast('Enter a task title', 'error'); return; }
+  try {
+    const res = await apiPost('addTask', { title, project_id, notes, priority, recurrence, scheduled_date, due_date });
+    closeModalDirect();
+    showToast('Task added ✓', 'success');
+    await Promise.all([loadTodayData(), loadTasks(state.currentProjectId)]);
+    render();
+    // Offer to add to calendar
+    if (scheduled_date) {
+      setTimeout(() => offerCalendarAdd({ id: res.id, title, notes, start: scheduled_date }), 500);
+    }
+  } catch(e) { showToast('Failed to add task', 'error'); }
+}
+
+function offerCalendarAdd(task) {
+  openModal(`
+    <div class="modal-title">Add to Calendar?</div>
+    <p style="color:var(--text2);font-size:14px;margin:12px 0 20px">
+      Would you like to add <strong style="color:var(--text)">${escHtml(task.title)}</strong> to your Google Calendar?
+    </p>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:10px" onclick="addTaskToCalendar(${JSON.stringify(task).replace(/"/g,'&quot;')})">Yes, Add to Calendar</button>
+    <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="closeModalDirect()">Skip</button>
+  `);
+}
+
+async function addTaskToCalendar(task) {
+  try {
+    await apiPost('addToCalendar', { title: task.title, notes: task.notes || '', start: task.start });
+    closeModalDirect();
+    showToast('Added to Google Calendar ✓', 'success');
+  } catch(e) { showToast('Calendar sync failed', 'error'); }
+}
+
+// ── TASK DETAIL ────────────────────────────────────────────────
+async function openTaskDetail(taskId) {
+  const task = [...state.tasks, ...state.todayTasks].find(t => t.id === taskId);
+  if (!task) return;
+  const proj = state.projects.find(p => p.id === task.project_id);
+  const log = await loadPomodoroLog(taskId);
+
+  const logHtml = log.length > 0
+    ? log.slice(-5).reverse().map(s => `
+      <div class="session-entry">
+        <span>${new Date(s.completed_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+        <span class="dur">${s.duration_mins} min</span>
+      </div>`).join('')
+    : `<div style="color:var(--text3);font-size:13px;text-align:center;padding:12px">No sessions yet</div>`;
+
+  openModal(`
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+      <div style="flex:1">
+        <div class="modal-title" style="margin-bottom:4px">${escHtml(task.title)}</div>
+        ${proj ? `<span style="font-size:12px;color:var(--text3)">${proj.name}</span>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="priority-dot priority-${task.priority}" style="width:10px;height:10px"></div>
+        <span style="font-size:12px;color:var(--text3);text-transform:capitalize">${task.priority}</span>
+      </div>
+    </div>
+    ${task.notes ? `<p style="color:var(--text2);font-size:14px;margin-bottom:16px;line-height:1.5">${escHtml(task.notes)}</p>` : ''}
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="openPomodoro('${task.id}','${escHtml(task.title)}','${task.project_id}',event);closeModalDirect()">
+        🍅 Start Pomodoro
+      </button>
+      ${task.status !== 'completed' ? `<button class="btn btn-ghost" onclick="completeTask('${task.id}')">✓ Complete</button>` : ''}
+      <button class="btn btn-danger" onclick="deleteTask('${task.id}')">Delete</button>
+    </div>
+    <div class="session-log">
+      <div class="session-log-title">🍅 Pomodoro History (${log.length} sessions)</div>
+      ${logHtml}
+    </div>
+  `);
+}
+
+async function toggleTask(taskId, event) {
+  event.stopPropagation();
+  const task = [...state.tasks, ...state.todayTasks].find(t => t.id === taskId);
+  if (!task) return;
+  const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+  try {
+    await apiPost('updateTask', { id: taskId, status: newStatus });
+    task.status = newStatus;
+    render();
+  } catch(e) { showToast('Failed to update', 'error'); }
+}
+
+async function completeTask(taskId) {
+  try {
+    await apiPost('completeTask', { id: taskId });
+    closeModalDirect();
+    showToast('Task completed! 🎉', 'success');
+    await Promise.all([loadTodayData(), loadTasks(state.currentProjectId)]);
+    render();
+  } catch(e) { showToast('Failed', 'error'); }
+}
+
+async function deleteTask(taskId) {
+  if (!confirm('Delete this task?')) return;
+  try {
+    await apiPost('deleteTask', { id: taskId });
+    closeModalDirect();
+    showToast('Task deleted', 'success');
+    await Promise.all([loadTodayData(), loadTasks(state.currentProjectId)]);
+    render();
+  } catch(e) { showToast('Failed', 'error'); }
+}
+
+// ── POMODORO ───────────────────────────────────────────────────
+function openPomodoro(taskId, taskTitle, projectId, event) {
+  if (event) event.stopPropagation();
+  timerState.taskId = taskId;
+  timerState.taskTitle = taskTitle;
+  timerState.projectId = projectId;
+  timerState.mode = 'work';
+  timerState.sessions = 0;
+  setTimerDuration('work');
+  renderPomodoroModal();
+  openModal(getPomodoroHtml());
+}
+
+function setTimerDuration(mode) {
+  const s = state.settings;
+  const durations = {
+    work:  (parseInt(s.pomodoroWork) || 25) * 60,
+    short: (parseInt(s.pomodoroShortBreak) || 5) * 60,
+    long:  (parseInt(s.pomodoroLongBreak) || 15) * 60
+  };
+  timerState.mode = mode;
+  timerState.total = durations[mode];
+  timerState.elapsed = 0;
+  if (timerState.running) stopTimer();
+}
+
+function getPomodoroHtml() {
+  const remaining = timerState.total - timerState.elapsed;
+  const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
+  const secs = String(remaining % 60).padStart(2, '0');
+  const progress = (timerState.elapsed / timerState.total) * 100;
+  const modeLabels = { work: 'FOCUS', short: 'SHORT BREAK', long: 'LONG BREAK' };
+
+  return `
+    <div style="margin-bottom:6px">
+      <div class="modal-title" style="font-size:18px">${escHtml(timerState.taskTitle)}</div>
+    </div>
+    <div class="mode-pills">
+      <button class="mode-pill ${timerState.mode==='work'?'active':''}" onclick="setTimerDuration('work');updatePomodoroUI()">Focus</button>
+      <button class="mode-pill ${timerState.mode==='short'?'active':''}" onclick="setTimerDuration('short');updatePomodoroUI()">Short Break</button>
+      <button class="mode-pill ${timerState.mode==='long'?'active':''}" onclick="setTimerDuration('long');updatePomodoroUI()">Long Break</button>
+    </div>
+    <div class="timer-display">
+      <div class="timer-mode">${modeLabels[timerState.mode]}</div>
+      <div class="timer-clock ${timerState.running?'running':''}" id="timer-clock">${mins}:${secs}</div>
+      <div class="timer-progress">
+        <div class="timer-progress-bar" id="timer-bar" style="width:${progress}%"></div>
+      </div>
+      <div style="font-size:13px;color:var(--text3)">Session ${timerState.sessions + 1}</div>
+    </div>
+    <div class="timer-controls">
+      <button class="timer-btn timer-btn-main" id="timer-main-btn" onclick="toggleTimer()">
+        ${timerState.running ? '⏸ Pause' : '▶ Start'}
+      </button>
+      <button class="timer-btn timer-btn-skip" onclick="skipTimer()">Skip →</button>
+    </div>
+    <div class="session-log" id="session-log">
+      <div class="session-log-title">THIS TASK'S SESSIONS</div>
+      <div id="session-entries">${renderSessionEntries()}</div>
+    </div>
+  `;
+}
+
+function renderSessionEntries() {
+  const log = state.pomodoroLog[timerState.taskId] || [];
+  if (log.length === 0) return `<div style="color:var(--text3);font-size:13px;text-align:center;padding:8px">No sessions yet</div>`;
+  return log.slice(-5).reverse().map(s => `
+    <div class="session-entry">
+      <span>${new Date(s.completed_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+      <span class="dur">${s.duration_mins} min</span>
+    </div>`).join('');
+}
+
+function renderPomodoroModal() {}
+
+function updatePomodoroUI() {
+  const mc = document.getElementById('modal-content');
+  if (mc) mc.innerHTML = `<div class="modal-handle"></div>${getPomodoroHtml()}`;
+}
+
+function toggleTimer() {
+  if (timerState.running) {
+    stopTimer();
+  } else {
+    startTimer();
+  }
+}
+
+function startTimer() {
+  timerState.running = true;
+  timerState.startedAt = new Date().toISOString();
+  timerState.interval = setInterval(timerTick, 1000);
+  document.getElementById('timer-main-btn').textContent = '⏸ Pause';
+  document.getElementById('timer-clock').classList.add('running');
+}
+
+function stopTimer() {
+  timerState.running = false;
+  clearInterval(timerState.interval);
+  timerState.interval = null;
+  const btn = document.getElementById('timer-main-btn');
+  if (btn) btn.textContent = '▶ Start';
+  const clock = document.getElementById('timer-clock');
+  if (clock) clock.classList.remove('running');
+}
+
+function timerTick() {
+  timerState.elapsed++;
+  const remaining = timerState.total - timerState.elapsed;
+  const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
+  const secs = String(remaining % 60).padStart(2, '0');
+  const progress = (timerState.elapsed / timerState.total) * 100;
+
+  const clock = document.getElementById('timer-clock');
+  const bar = document.getElementById('timer-bar');
+  if (clock) clock.textContent = `${mins}:${secs}`;
+  if (bar) bar.style.width = `${progress}%`;
+
+  if (remaining <= 0) {
+    stopTimer();
+    timerDone();
+  }
+}
+
+async function timerDone() {
+  if (timerState.mode === 'work') {
+    timerState.sessions++;
+    const durationMins = Math.round(timerState.total / 60);
+    const completedAt = new Date().toISOString();
+
+    // Log to sheet
+    try {
+      await apiPost('logPomodoro', {
+        task_id: timerState.taskId,
+        task_title: timerState.taskTitle,
+        project_id: timerState.projectId,
+        duration_mins: durationMins,
+        started_at: timerState.startedAt,
+        completed_at: completedAt
+      });
+      await loadPomodoroLog(timerState.taskId);
+      const entries = document.getElementById('session-entries');
+      if (entries) entries.innerHTML = renderSessionEntries();
+    } catch(e) {}
+
+    showToast(`🍅 Pomodoro complete! +${durationMins} min focus`, 'success');
+
+    // Auto switch to break
+    const longBreakAfter = parseInt(state.settings.longBreakAfter) || 4;
+    const nextMode = timerState.sessions % longBreakAfter === 0 ? 'long' : 'short';
+    setTimerDuration(nextMode);
+    updatePomodoroUI();
+  } else {
+    setTimerDuration('work');
+    updatePomodoroUI();
+    showToast('Break over! Ready to focus? ▶', 'success');
+  }
+}
+
+function skipTimer() {
+  stopTimer();
+  const nextMode = timerState.mode === 'work' ? 'short' : 'work';
+  setTimerDuration(nextMode);
+  updatePomodoroUI();
+}
+
+// ── UTILS ──────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
