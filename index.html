@@ -792,18 +792,13 @@ async function saveSetup() {
 
   config = { url: APPS_SCRIPT_URL, token };
 
-  try {
-    showToast('Connecting…');
-    // Use GET to verify token and init sheets (avoids CORS preflight issues)
-    const res = await api('initSheets');
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-    document.getElementById('setup-screen').style.display = 'none';
-    showLockScreen();
-    showToast('Connected! Enter your PIN to continue.', 'success');
-  } catch(e) {
-    console.error('Setup error:', e);
-    showToast('Connection failed. Check your auth token.', 'error');
-  }
+  // Save immediately and go to lock screen.
+  // No network call here — CORS blocks it from GitHub Pages.
+  // If the token is wrong, PIN verification will fail with a clear error.
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  document.getElementById('setup-screen').style.display = 'none';
+  showLockScreen();
+  showToast('Token saved. Enter your PIN to continue.', 'success');
 }
 
 async function loadApp() {
@@ -813,25 +808,32 @@ async function loadApp() {
 
 // ── API ────────────────────────────────────────────────────────
 async function api(action, params = {}) {
-  const url = new URL(config.url);
+  const url = new URL(config.url || APPS_SCRIPT_URL);
   url.searchParams.set('action', action);
   url.searchParams.set('token', config.token);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-
-  const res = await fetch(url.toString());
-  const data = await res.json();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+  }
+  const res = await fetch(url.toString(), { redirect: 'follow' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch(e) { throw new Error('Bad response from server'); }
   if (data.error) throw new Error(data.error);
   return data;
 }
 
 async function apiPost(action, data = {}) {
-  // Use text/plain to avoid CORS preflight — Apps Script reads it fine
   const res = await fetch(config.url || APPS_SCRIPT_URL, {
     method: 'POST',
+    redirect: 'follow',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action, token: config.token, data })
   });
-  const result = await res.json();
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const text = await res.text();
+  let result;
+  try { result = JSON.parse(text); } catch(e) { throw new Error('Bad response from server'); }
   if (result.error) throw new Error(result.error);
   return result;
 }
